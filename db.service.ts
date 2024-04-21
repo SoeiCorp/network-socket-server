@@ -2,9 +2,46 @@
 import { chatMessages, chatroomUsers } from "./drizzle/migrations/schema"
 import { db } from "./drizzle/db"
 import { toClientMessage, toServerImageMessage, toServerTextMessage } from "./types"
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 // import { uploadImageToS3 } from './uploadImageToS3';
 // import getS3URL from '../actions/public/S3/getS3URL';
+
+export async function findAllGroupChatroom(userId: string) {
+  const result = await db.execute(sql`
+            SELECT c.*, count(*) 
+            FROM chatrooms c 
+            LEFT JOIN chatroom_users cu 
+            ON cu.chatroom_id = c.id 
+            WHERE c.id IN ( 
+                SELECT chatroom_id 
+                FROM chatroom_users 
+                WHERE user_id = ${userId}) 
+              AND c.chatroom_type = 'group'
+            GROUP BY c.id`)
+  return result.rows
+}
+
+export async function findPrivateChatroom(userId: string, opponentUserId: string): Promise<{ success: boolean, chatroom: any }> {
+  const chatroom = await db.execute(sql`
+                SELECT * FROM chatrooms c
+                LEFT JOIN chatroom_users cu
+                ON c.id = cu.chatroom_id
+                WHERE c.chatroom_type = 'private' AND c.id IN (
+                SELECT cu.chatroom_id FROM chatroom_users cu
+                WHERE cu.chatroom_id IN (
+                SELECT cu.chatroom_id FROM chatroom_users cu
+                WHERE cu.user_id = ${userId}) AND user_id = ${opponentUserId})`);
+  if (!chatroom.rows.length) {
+    return {
+      success: false,
+      chatroom: []
+    }
+  }
+  return {
+    success: true,
+    chatroom: chatroom.rows[0]
+  }
+}
 
 export async function validChatRoom(chatRoomId: string, userId: string): Promise<boolean> {
   // check if such chatRoom exists and if the userId is in the chatRoom
@@ -32,6 +69,7 @@ export async function saveTextMessage(
   userId: string,
   message: toServerTextMessage
 ): Promise<toClientMessage> {
+  console.log(chatRoomId, userId, message.text)
   const savedMessage = await db
     .insert(chatMessages)
     .values({
