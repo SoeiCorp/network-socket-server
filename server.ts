@@ -1,20 +1,23 @@
 import { validChatRoom, saveTextMessage } from "./db.service"
 import http from "http"
 import { Server } from "socket.io"
+import * as dotenv from 'dotenv';
+dotenv.config();
 // import { toClientMessage, toServerTextMessage } from "../types/chat"
 // import { saveImageMessage, saveTextMessage, validChatRoom } from "./database"
 
-const server = http.createServer((req, res) => {})
+const server = http.createServer((req, res) => { })
 
 const io = new Server(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL,
-    methods: ["GET", "POST"],
-    allowedHeaders: ["chat-room-id", "user-id"],
-    credentials: true,
-  },
-  maxHttpBufferSize: 5 * 1e6,
-  pingTimeout: 60000,
+    cors: {
+        // origin: process.env.FRONTEND_URL,
+        origin: '*',
+        methods: ["GET", "POST"],
+        allowedHeaders: ["chat-room-id", "user-id"],
+        credentials: true,
+    },
+    maxHttpBufferSize: 5 * 1e6,
+    pingTimeout: 60000,
 })
 
 /*
@@ -23,69 +26,70 @@ Note :
 */
 
 const chatRoomIdToArrayOfSocketId = new Map<string, string[]>()
+const onlineUser = new Set();
 
 io.on("connection", async (socket) => {
-  const socketId = socket.id
-  const chatRoomId = socket.handshake.headers["chat-room-id"] as string
-  const userId = socket.handshake.headers["user-id"] as string
-  console.log("A user connected", chatRoomId, socketId, userId)
+    const socketId = socket.id
+    const chatRoomId = socket.handshake.headers["chat-room-id"] as string
+    const userId = socket.handshake.headers["user-id"] as string
+    console.log("A user connected", chatRoomId, socketId, userId)
 
-  if (!chatRoomIdToArrayOfSocketId.has(chatRoomId)) {
-    chatRoomIdToArrayOfSocketId.set(chatRoomId, [])
-  }
-
-  chatRoomIdToArrayOfSocketId.get(chatRoomId)?.push(socketId)
-
-  if (!(await validChatRoom(chatRoomId, userId))) {
-    console.log("Chat room or user id is not valid")
-    socket.disconnect()
-  }
-
-  // Handle chat text messages
-  socket.on("chat text message", async (message: { text: string }) => {
-    /* Handle chat message */
-    console.log(message)
-
-    // save message into db
-    const messageToClient = await saveTextMessage(chatRoomId, userId, message)
-
-    // emits message back
-    const socketsInTheRoom = chatRoomIdToArrayOfSocketId.get(chatRoomId) as string[]
-    io.to(socketsInTheRoom).emit("chat text message", messageToClient)
-  })
-
-  // Handle chat image messages
-  //   socket.on("chat image message", async (message) => {
-  //     console.log(message)
-  //     try {
-  //       // save image to S3 and database
-  //       const messageToClient = await saveImageMessage(chatRoomId, userId, message)
-
-  //       // emits image back
-  //       const socketsInTheRoom = chatRoomIdToArrayOfSocketId.get(chatRoomId) as string[]
-  //       io.to(socketsInTheRoom).emit("chat image message", messageToClient)
-  //     } catch (err) {
-  //       console.log(err)
-  //     }
-  //   })
-
-  socket.on("disconnect", () => {
-    const socketsInTheRoom = chatRoomIdToArrayOfSocketId.get(chatRoomId)
-    if (socketsInTheRoom) {
-      const socketIdToRemove = socketId
-      const indexToRemove = socketsInTheRoom.indexOf(socketIdToRemove)
-      if (indexToRemove >= 0) {
-        socketsInTheRoom.splice(indexToRemove, 1)
-      }
-      if (socketsInTheRoom.length === 0) {
-        chatRoomIdToArrayOfSocketId.delete(chatRoomId)
-      }
+    if (!chatRoomIdToArrayOfSocketId.has(chatRoomId)) {
+        chatRoomIdToArrayOfSocketId.set(chatRoomId, [])
     }
 
-    console.log("A user disconnected")
-  })
+    chatRoomIdToArrayOfSocketId.get(chatRoomId)?.push(socketId)
+
+    if (!(await validChatRoom(chatRoomId, userId))) {
+        console.log("Chat room or user id is not valid")
+        socket.disconnect()
+    }
+
+    // Handle chat text messages
+    socket.on("chat text message", async (message: { text: string }) => {
+        /* Handle chat message */
+        console.log(message)
+
+        // save message into db
+        const messageToClient = await saveTextMessage(chatRoomId, userId, message)
+
+        // emits message back
+        const socketsInTheRoom = chatRoomIdToArrayOfSocketId.get(chatRoomId) as string[]
+        io.to(socketsInTheRoom).emit("chat text message", messageToClient)
+    })
+
+    // Handle chat image messages
+    //   socket.on("chat image message", async (message) => {
+    //     console.log(message)
+    //     try {
+    //       // save image to S3 and database
+    //       const messageToClient = await saveImageMessage(chatRoomId, userId, message)
+
+    //       // emits image back
+    //       const socketsInTheRoom = chatRoomIdToArrayOfSocketId.get(chatRoomId) as string[]
+    //       io.to(socketsInTheRoom).emit("chat image message", messageToClient)
+    //     } catch (err) {
+    //       console.log(err)
+    //     }
+    //   })
+
+    socket.on("disconnect", () => {
+        const socketsInTheRoom = chatRoomIdToArrayOfSocketId.get(chatRoomId)
+        if (socketsInTheRoom) {
+            const socketIdToRemove = socketId
+            const indexToRemove = socketsInTheRoom.indexOf(socketIdToRemove)
+            if (indexToRemove >= 0) {
+                socketsInTheRoom.splice(indexToRemove, 1)
+            }
+            if (socketsInTheRoom.length === 0) {
+                chatRoomIdToArrayOfSocketId.delete(chatRoomId)
+            }
+        }
+
+        console.log("A user disconnected")
+    })
 })
 
-server.listen(process.env.PORT, () => {
-  console.log("WebSocket server listening on port 3000")
+server.listen(process.env.PORT || '3001', () => {
+    console.log(`WebSocket server listening on port ${process.env.PORT}`)
 })
