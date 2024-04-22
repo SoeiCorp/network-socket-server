@@ -1,7 +1,7 @@
 // import { prisma } from '../lib/prisma';
 import { chatMessages, chatroomUsers, chatrooms, users } from "./drizzle/migrations/schema"
 import { db } from "./drizzle/db"
-import { toClientChatroom, toClientMessage, toServerImageMessage, toServerTextMessage } from "./types"
+import { toClientChatroom, toClientMessage, toClientPrivateChatroom, toServerImageMessage, toServerTextMessage } from "./types"
 import { and, eq, sql } from "drizzle-orm"
 // import { uploadImageToS3 } from './uploadImageToS3';
 // import getS3URL from '../actions/public/S3/getS3URL';
@@ -28,6 +28,15 @@ export async function findNewGroupChatroom(chatroomId: string): Promise<toClient
     type: chatroom[0].chatroomType,
     createdAt: chatroom[0].createdAt,
     numUsers: 1
+  }
+}
+
+export async function findNewPrivateChatroom(chatroomId: string): Promise<toClientPrivateChatroom> {
+  const chatroomUser = await db.select().from(chatroomUsers).where(eq(chatroomUsers.chatroomId, parseInt(chatroomId)))
+  return {
+    id: chatroomUser[0].chatroomId,
+    userId1: chatroomUser[0].userId,
+    userId2: chatroomUser[1].userId
   }
 }
 

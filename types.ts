@@ -25,3 +25,9 @@ export type toClientChatroom = {
   createdAt: string
   numUsers: number
 }
+
+export type toClientPrivateChatroom = {
+  id: number
+  userId1: number
+  userId2: number
+}
