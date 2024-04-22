@@ -1,4 +1,4 @@
-import { validChatRoom, saveTextMessage, findAllGroupChatroom, findPrivateChatroom } from "./db.service"
+import { validChatRoom, saveTextMessage, findPrivateChatroom, findNewGroupChatroom, findAllChatroom } from "./db.service"
 import http from "http"
 import { Server } from "socket.io"
 import * as dotenv from 'dotenv';
@@ -29,8 +29,9 @@ io.on("connection", async (socket) => {
     socket.on('login', async (userId) => {
         onlineUsers[Number(userId)] = socket.id;
         io.emit('users online', [...Object.keys(onlineUsers)])
+        socket.join('general')
         // console.log([...Object.keys(onlineUsers)])
-        const allGroupChatroom = await findAllGroupChatroom(userId)
+        const allGroupChatroom = await findAllChatroom(userId)
         for (let chatroom of allGroupChatroom) {
             socket.join(`chatroom: ${chatroom.id}`)
             // console.log(chatroom.id)
@@ -70,6 +71,14 @@ io.on("connection", async (socket) => {
         const recipientSocketId = onlineUsers[recipientId]
         io.to(`chatroom: ${chatroomId}`).emit('group message', chatroomId, messageToClient, senderUserId)
         // socket.emit('group message sent', chatroomId, message, recipientId)
+    })
+
+    socket.on('create group', async (chatroomId) => {
+        let chatroomToClient = chatroomId;
+        if (typeof chatroomId === 'string') {
+            const chatroomToClient = await findNewGroupChatroom(chatroomId)
+        }
+        io.to('general').emit('create group', chatroomToClient)
     })
 
     socket.on('join group', async (chatroomId, recipientId) => {
