@@ -10,8 +10,18 @@ export type toServerImageMessage = {
 
 export type toClientMessage = {
   id: number
+  chatroomId: number
   userId: number
-  createdAt: string
   content: string
   type: "text" | "image"
+  createdAt: string
+  userName: string
+}
+
+export type toClientChatroom = {
+  id: number
+  name: string
+  type: 'group' | 'private'
+  createdAt: string
+  numUsers: number
 }

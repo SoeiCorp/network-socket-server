@@ -1,12 +1,12 @@
 // import { prisma } from '../lib/prisma';
-import { chatMessages, chatroomUsers } from "./drizzle/migrations/schema"
+import { chatMessages, chatroomUsers, chatrooms, users } from "./drizzle/migrations/schema"
 import { db } from "./drizzle/db"
-import { toClientMessage, toServerImageMessage, toServerTextMessage } from "./types"
+import { toClientChatroom, toClientMessage, toServerImageMessage, toServerTextMessage } from "./types"
 import { and, eq, sql } from "drizzle-orm"
 // import { uploadImageToS3 } from './uploadImageToS3';
 // import getS3URL from '../actions/public/S3/getS3URL';
 
-export async function findAllGroupChatroom(userId: string) {
+export async function findAllChatroom(userId: string) {
   const result = await db.execute(sql`
             SELECT c.*, count(*) 
             FROM chatrooms c 
@@ -16,9 +16,19 @@ export async function findAllGroupChatroom(userId: string) {
                 SELECT chatroom_id 
                 FROM chatroom_users 
                 WHERE user_id = ${userId}) 
-              AND c.chatroom_type = 'group'
             GROUP BY c.id`)
   return result.rows
+}
+
+export async function findNewGroupChatroom(chatroomId: string): Promise<toClientChatroom> {
+  const chatroom = await db.select().from(chatrooms).where(eq(chatrooms.id, Number(chatroomId)))
+  return {
+    id: chatroom[0].id,
+    name: chatroom[0].name,
+    type: chatroom[0].chatroomType,
+    createdAt: chatroom[0].createdAt,
+    numUsers: 1
+  }
 }
 
 export async function findPrivateChatroom(userId: string, opponentUserId: string): Promise<{ success: boolean, chatroom: any }> {
@@ -79,15 +89,17 @@ export async function saveTextMessage(
       messageType: "text",
     })
     .returning()
+  const user = await db.select().from(users).where(eq(users.id, parseInt(userId)))
 
   const messageToClient: toClientMessage = {
     id: savedMessage[0].id,
+    chatroomId: parseInt(chatRoomId),
     userId: savedMessage[0].userId,
-    createdAt: savedMessage[0].createdAt,
     content: savedMessage[0].message,
     type: savedMessage[0].messageType,
+    createdAt: savedMessage[0].createdAt,
+    userName: user[0].name
   }
-
   return messageToClient
 }
 
