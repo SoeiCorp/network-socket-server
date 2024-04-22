@@ -51,6 +51,7 @@ io.on("connection", async (socket) => {
         let messageToClient = message;
         if (typeof message === 'string') {
             messageToClient = await saveTextMessage(chatroom.id, senderUserId, { text: message })
+            messageToClient.createdAt = new Date(messageToClient.createdAt);
         }
         const recipientSocketId = onlineUsers[recipientId]
         io.to(recipientSocketId).emit('private message', senderUserId, messageToClient)
@@ -58,15 +59,17 @@ io.on("connection", async (socket) => {
     })
 
     socket.on('group message', async (chatroomId, message, recipientId) => {
-        // console.log(chatroomId, recipientId, message)
+        // console.log(chatroomId, message, recipientId)
         const senderUserId = Object.keys(onlineUsers).find(key => onlineUsers[Number(key)] === socket.id)
         const isValid = await validChatRoom(chatroomId, senderUserId)
         if (!isValid) {
             return;
         }
         let messageToClient = message;
+        // console.log(message)
         if (typeof message === 'string') {
             messageToClient = await saveTextMessage(chatroomId, senderUserId, { text: message })
+            messageToClient.createdAt = new Date(messageToClient.createdAt);
         }
         const recipientSocketId = onlineUsers[recipientId]
         io.to(`chatroom: ${chatroomId}`).emit('group message', chatroomId, messageToClient, senderUserId)
