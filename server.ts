@@ -15,11 +15,11 @@ const server = http.createServer((req, res) => { });
 
 const io = new Server(server, {
     cors: {
-        origin: process.env.FRONTEND_URL,
-        // origin: "*",
+        // origin: process.env.FRONTEND_URL,
+        origin: "*",
         methods: ["GET", "POST"],
         // allowedHeaders: ["chat-room-id", "user-id"],
-        // credentials: true,
+        credentials: true,
     },
     maxHttpBufferSize: 5 * 1e6,
     pingTimeout: 60000,
