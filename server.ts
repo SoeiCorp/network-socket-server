@@ -16,7 +16,8 @@ const server = http.createServer((req, res) => { });
 const io = new Server(server, {
     cors: {
         // origin: process.env.FRONTEND_URL,
-        origin: "*",
+        // origin: "*",
+        origin: ['http://localhost:3000', 'https://soei-socket-client.vercel.app'],
         methods: ["GET", "POST"],
         // allowedHeaders: ["chat-room-id", "user-id"],
         credentials: true,
