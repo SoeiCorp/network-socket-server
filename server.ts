@@ -45,6 +45,15 @@ io.on("connection", async (socket) => {
         }
     });
 
+    socket.on('update user', async (userId, name) => {
+        io.to('general').emit(
+            "update user",
+            userId,
+            name
+        );
+
+    })
+
     socket.on("private message", async (recipientId, message) => {
         // console.log(recipientId, message)
         const senderUserId = Object.keys(onlineUsers).find(
@@ -129,7 +138,7 @@ io.on("connection", async (socket) => {
         const joinUserId = Object.keys(onlineUsers).find(
             (key) => onlineUsers[Number(key)] === socket.id
         );
-        io.to(`chatroom: ${chatroomId}`).emit("join group", chatroomId, joinUserId);
+        io.to('general').emit("join group", chatroomId, joinUserId);
         socket.emit("join group sent", chatroomId, recipientId);
         socket.join(`chatroom: ${chatroomId}`);
     });
@@ -139,7 +148,7 @@ io.on("connection", async (socket) => {
         const leaveUserId = Object.keys(onlineUsers).find(
             (key) => onlineUsers[Number(key)] === socket.id
         );
-        io.to(`chatroom: ${chatroomId}`).emit(
+        io.to('general').emit(
             "join group",
             chatroomId,
             leaveUserId
