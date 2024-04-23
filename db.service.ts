@@ -3,41 +3,64 @@ import { chatMessages, chatroomUsers, chatrooms, users } from "./drizzle/migrati
 import { db } from "./drizzle/db"
 import { toClientChatroom, toClientMessage, toClientPrivateChatroom, toServerImageMessage, toServerTextMessage } from "./types"
 import { and, eq, sql } from "drizzle-orm"
+import { query } from "./lib/db"
 // import { uploadImageToS3 } from './uploadImageToS3';
 // import getS3URL from '../actions/public/S3/getS3URL';
 
 export async function findAllChatroom(userId: string) {
-  const result = await db.execute(sql`
-            SELECT c.*, count(*) 
-            FROM chatrooms c 
-            LEFT JOIN chatroom_users cu 
-            ON cu.chatroom_id = c.id 
-            WHERE c.id IN ( 
-                SELECT chatroom_id 
-                FROM chatroom_users 
-                WHERE user_id = ${userId}) 
-            GROUP BY c.id`)
+  const result = await query(`
+  SELECT 
+    c.*, 
+    count(*) 
+  FROM chatrooms c 
+  LEFT JOIN chatroom_users cu 
+  ON cu.chatroom_id = c.id 
+  WHERE c.id IN ( 
+      SELECT chatroom_id 
+      FROM chatroom_users 
+      WHERE user_id = '${userId}') 
+  GROUP BY c.id`)
+  // const result = await db.execute(sql`
+  //           SELECT c.*, count(*) 
+  //           FROM chatrooms c 
+  //           LEFT JOIN chatroom_users cu 
+  //           ON cu.chatroom_id = c.id 
+  //           WHERE c.id IN ( 
+  //               SELECT chatroom_id 
+  //               FROM chatroom_users 
+  //               WHERE user_id = ${userId}) 
+  //           GROUP BY c.id`)
   return result.rows
 }
 
 export async function findNewGroupChatroom(chatroomId: string): Promise<toClientChatroom> {
-  const chatroom = await db.select().from(chatrooms).where(eq(chatrooms.id, Number(chatroomId)))
-  // console.log(chatroom)
+  // const chatroom = await db.select().from(chatrooms).where(eq(chatrooms.id, Number(chatroomId)))
+  const chatroom = await query(`
+    SELECT *
+    FROM chatrooms
+    WHERE id = ${chatroomId}
+    `)
+
+  console.log(chatroom.rows)
   return {
-    id: chatroom[0].id,
-    name: chatroom[0].name,
-    type: chatroom[0].chatroomType,
-    createdAt: chatroom[0].createdAt,
+    id: chatroom.rows[0].id,
+    name: chatroom.rows[0].name,
+    type: chatroom.rows[0].chatroom_type,
+    createdAt: chatroom.rows[0].created_at,
     numUsers: 1
   }
 }
 
 export async function findNewPrivateChatroom(chatroomId: string): Promise<toClientPrivateChatroom> {
-  const chatroomUser = await db.select().from(chatroomUsers).where(eq(chatroomUsers.chatroomId, parseInt(chatroomId)))
+  // const chatroomUser = await db.select().from(chatroomUsers).where(eq(chatroomUsers.chatroomId, parseInt(chatroomId)))
+  const chatroomUser = await query(`
+    SELECT *
+    FROM chatroom_users
+    WHERE chatroom_id = ${chatroomId}`)
   return {
-    id: chatroomUser[0].chatroomId,
-    userId1: chatroomUser[0].userId,
-    userId2: chatroomUser[1].userId
+    id: chatroomUser.rows[0].chatroom_id,
+    userId1: chatroomUser.rows[0].user_id,
+    userId2: chatroomUser.rows[1].user_id
   }
 }
 
@@ -65,19 +88,24 @@ export async function findPrivateChatroom(userId: string, opponentUserId: string
 
 export async function validChatRoom(chatRoomId: string, userId: string): Promise<boolean> {
   // check if such chatRoom exists and if the userId is in the chatRoom
-  const chatRoom = await db
-    .select({ chatroomid: chatroomUsers.chatroomId, userId: chatroomUsers.userId })
-    .from(chatroomUsers)
-    .where(
-      and(
-        eq(chatroomUsers.chatroomId, parseInt(chatRoomId)),
-        eq(chatroomUsers.userId, parseInt(userId))
-      )
-    )
-    .limit(1)
+  // const chatRoom = await db
+  //   .select({ chatroomid: chatroomUsers.chatroomId, userId: chatroomUsers.userId })
+  //   .from(chatroomUsers)
+  //   .where(
+  //     and(
+  //       eq(chatroomUsers.chatroomId, parseInt(chatRoomId)),
+  //       eq(chatroomUsers.userId, parseInt(userId))
+  //     )
+  //   )
+  //   .limit(1)
+  const chatroom = await query(`
+    SELECT *
+    FROM chatroom_users
+    WHERE chatroom_id = ${chatRoomId}
+      AND user_id = ${userId}`)
   // console.log(chatRoom)
 
-  if (chatRoom.length === 0) {
+  if (chatroom.rows.length === 0) {
     return false
   }
 
@@ -90,25 +118,32 @@ export async function saveTextMessage(
   message: toServerTextMessage
 ): Promise<toClientMessage> {
   // console.log(chatRoomId, userId, message.text)
-  const savedMessage = await db
-    .insert(chatMessages)
-    .values({
-      chatroomId: parseInt(chatRoomId),
-      userId: parseInt(userId),
-      message: message.text,
-      messageType: "text",
-    })
-    .returning()
-  const user = await db.select().from(users).where(eq(users.id, parseInt(userId)))
-
+  // const savedMessage = await db
+  //   .insert(chatMessages)
+  //   .values({
+  //     chatroomId: parseInt(chatRoomId),
+  //     userId: parseInt(userId),
+  //     message: message.text,
+  //     messageType: "text",
+  //   })
+  //   .returning()
+  const savedMessage = await query(`
+    INSERT INTO chat_messages (chatroom_id, user_id, message, message_type)
+    VALUES ('${chatRoomId}', '${userId}', '${message.text}', 'text')
+    RETURNING *`)
+  // const user = await db.select().from(users).where(eq(users.id, parseInt(userId)))
+  const user = await query(`
+    SELECT *
+    FROM users
+    WHERE id = ${userId}`)
   const messageToClient: toClientMessage = {
-    id: savedMessage[0].id,
+    id: savedMessage.rows[0].id,
     chatroomId: parseInt(chatRoomId),
-    userId: savedMessage[0].userId,
-    content: savedMessage[0].message,
-    type: savedMessage[0].messageType,
-    createdAt: savedMessage[0].createdAt,
-    userName: user[0].name
+    userId: savedMessage.rows[0].user_id,
+    content: savedMessage.rows[0].message,
+    type: savedMessage.rows[0].message_type,
+    createdAt: savedMessage.rows[0].created_at,
+    userName: user.rows[0].name
   }
   return messageToClient
 }

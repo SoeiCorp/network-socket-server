@@ -39,6 +39,7 @@ io.on("connection", async (socket) => {
         // console.log([...Object.keys(onlineUsers)])
         const allGroupChatroom = await findAllChatroom(userId);
         for (let chatroom of allGroupChatroom) {
+            console.log(`chatroom: ${chatroom.id}`)
             socket.join(`chatroom: ${chatroom.id}`);
             // console.log(chatroom.id)
         }
@@ -64,7 +65,6 @@ io.on("connection", async (socket) => {
             messageToClient = await saveTextMessage(chatroom.id, senderUserId, {
                 text: message,
             });
-            messageToClient.createdAt = messageToClient.createdAt.replace(" ", "T") + "Z";
         }
         const recipientSocketId = onlineUsers[recipientId];
         io.to(recipientSocketId).emit(
@@ -76,7 +76,7 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("group message", async (chatroomId, message, recipientId) => {
-        // console.log(chatroomId, recipientId, message)
+        console.log(chatroomId, message, recipientId)
         const senderUserId = Object.keys(onlineUsers).find(
             (key) => onlineUsers[Number(key)] === socket.id
         );
@@ -89,10 +89,10 @@ io.on("connection", async (socket) => {
             messageToClient = await saveTextMessage(chatroomId, senderUserId, {
                 text: message,
             });
-            messageToClient.createdAt = messageToClient.createdAt.replace(" ", "T") + "Z";
-            // console.log("messageToClient", messageToClient)
+            console.log("messageToClient", messageToClient)
         }
         const recipientSocketId = onlineUsers[recipientId];
+        console.log(`chatroom: ${chatroomId}`)
         io.to(`chatroom: ${chatroomId}`).emit(
             "group message",
             chatroomId,
