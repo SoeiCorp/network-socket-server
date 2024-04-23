@@ -93,6 +93,7 @@ io.on("connection", async (socket) => {
                 text: message,
             });
             messageToClient.createdAt = messageToClient.createdAt.replace(" ", "T") + "Z";
+            console.log("messageToClient", messageToClient)
         }
         const recipientSocketId = onlineUsers[recipientId];
         io.to(`chatroom: ${chatroomId}`).emit(
@@ -105,9 +106,10 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("create group", async (chatroomId) => {
+        console.log(socket.id, chatroomId);
         let chatroomToClient = chatroomId;
-        if (typeof chatroomId === "string") {
-            chatroomToClient = await findNewGroupChatroom(chatroomId);
+        if (typeof chatroomId === "number") {
+            chatroomToClient = await findNewGroupChatroom(chatroomId.toString());
         }
         io.to("general").emit("create group", chatroomToClient);
         socket.join(`chatroom: ${chatroomId}`);

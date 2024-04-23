@@ -22,6 +22,7 @@ export async function findAllChatroom(userId: string) {
 
 export async function findNewGroupChatroom(chatroomId: string): Promise<toClientChatroom> {
   const chatroom = await db.select().from(chatrooms).where(eq(chatrooms.id, Number(chatroomId)))
+  console.log(chatroom)
   return {
     id: chatroom[0].id,
     name: chatroom[0].name,
