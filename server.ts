@@ -16,10 +16,7 @@ const server = http.createServer((req, res) => { });
 const io = new Server(server, {
     cors: {
         origin: process.env.FRONTEND_URL,
-        // origin: "*",
-        // origin: ['http://localhost:3000', 'https://soei-socket-client.vercel.app', 'https://network-socket-client.onrender.com'],
         methods: ["GET", "POST"],
-        // allowedHeaders: ["chat-room-id", "user-id"],
         credentials: true,
     },
     maxHttpBufferSize: 5 * 1e6,
@@ -35,7 +32,7 @@ const onlineUsers: onlineUsersType = {};
 io.on("connection", async (socket) => {
     console.log("User connected:", socket.id);
     socket.on("login", async (userId) => {
-        console.log(userId);
+        console.log("Logged-In User Id:", userId);
         onlineUsers[Number(userId)] = socket.id;
         io.emit("users online", [...Object.keys(onlineUsers)]);
         socket.join("general");
@@ -93,7 +90,7 @@ io.on("connection", async (socket) => {
                 text: message,
             });
             messageToClient.createdAt = messageToClient.createdAt.replace(" ", "T") + "Z";
-            console.log("messageToClient", messageToClient)
+            // console.log("messageToClient", messageToClient)
         }
         const recipientSocketId = onlineUsers[recipientId];
         io.to(`chatroom: ${chatroomId}`).emit(
@@ -106,7 +103,7 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("create group", async (chatroomId) => {
-        console.log(socket.id, chatroomId);
+        // console.log(socket.id, chatroomId);
         let chatroomToClient = chatroomId;
         if (typeof chatroomId === "number") {
             chatroomToClient = await findNewGroupChatroom(chatroomId.toString());
@@ -124,11 +121,11 @@ io.on("connection", async (socket) => {
             io.to(recipientSocketId).emit("create private", chatroomId);
         }
         socket.join(`chatroom: ${chatroomId}`);
-        console.log(socket.id, chatroomId);
+        // console.log(socket.id, chatroomId);
     });
 
     socket.on("join group", async (chatroomId, recipientId) => {
-        console.log(chatroomId, recipientId);
+        // console.log(chatroomId, recipientId);
         const joinUserId = Object.keys(onlineUsers).find(
             (key) => onlineUsers[Number(key)] === socket.id
         );
@@ -152,7 +149,7 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("disconnect", () => {
-        console.log("User disconnected:", socket.id);
+        // console.log("User disconnected:", socket.id);
         delete onlineUsers[
             Number(
                 Object.keys(onlineUsers).find(

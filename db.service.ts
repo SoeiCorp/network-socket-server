@@ -22,7 +22,7 @@ export async function findAllChatroom(userId: string) {
 
 export async function findNewGroupChatroom(chatroomId: string): Promise<toClientChatroom> {
   const chatroom = await db.select().from(chatrooms).where(eq(chatrooms.id, Number(chatroomId)))
-  console.log(chatroom)
+  // console.log(chatroom)
   return {
     id: chatroom[0].id,
     name: chatroom[0].name,
@@ -75,7 +75,7 @@ export async function validChatRoom(chatRoomId: string, userId: string): Promise
       )
     )
     .limit(1)
-  console.log(chatRoom)
+  // console.log(chatRoom)
 
   if (chatRoom.length === 0) {
     return false
@@ -89,7 +89,7 @@ export async function saveTextMessage(
   userId: string,
   message: toServerTextMessage
 ): Promise<toClientMessage> {
-  console.log(chatRoomId, userId, message.text)
+  // console.log(chatRoomId, userId, message.text)
   const savedMessage = await db
     .insert(chatMessages)
     .values({
