@@ -20,7 +20,7 @@ const io = new Server(server, {
         credentials: true,
     },
     maxHttpBufferSize: 5 * 1e6,
-    pingTimeout: 60000,
+    pingTimeout: 600000,
 });
 
 type onlineUsersType = {
