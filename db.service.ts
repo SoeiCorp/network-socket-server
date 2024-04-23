@@ -3,12 +3,12 @@ import { chatMessages, chatroomUsers, chatrooms, users } from "./drizzle/migrati
 import { db } from "./drizzle/db"
 import { toClientChatroom, toClientMessage, toClientPrivateChatroom, toServerImageMessage, toServerTextMessage } from "./types"
 import { and, eq, sql } from "drizzle-orm"
-import { query } from "./lib/db"
+import { pg } from "./lib/db"
 // import { uploadImageToS3 } from './uploadImageToS3';
 // import getS3URL from '../actions/public/S3/getS3URL';
 
 export async function findAllChatroom(userId: string) {
-  const result = await query(`
+  const result = await pg.query(`
   SELECT 
     c.*, 
     count(*) 
@@ -35,7 +35,7 @@ export async function findAllChatroom(userId: string) {
 
 export async function findNewGroupChatroom(chatroomId: string): Promise<toClientChatroom> {
   // const chatroom = await db.select().from(chatrooms).where(eq(chatrooms.id, Number(chatroomId)))
-  const chatroom = await query(`
+  const chatroom = await pg.query(`
     SELECT *
     FROM chatrooms
     WHERE id = ${chatroomId}
@@ -53,7 +53,7 @@ export async function findNewGroupChatroom(chatroomId: string): Promise<toClient
 
 export async function findNewPrivateChatroom(chatroomId: string): Promise<toClientPrivateChatroom> {
   // const chatroomUser = await db.select().from(chatroomUsers).where(eq(chatroomUsers.chatroomId, parseInt(chatroomId)))
-  const chatroomUser = await query(`
+  const chatroomUser = await pg.query(`
     SELECT *
     FROM chatroom_users
     WHERE chatroom_id = ${chatroomId}`)
@@ -98,7 +98,7 @@ export async function validChatRoom(chatRoomId: string, userId: string): Promise
   //     )
   //   )
   //   .limit(1)
-  const chatroom = await query(`
+  const chatroom = await pg.query(`
     SELECT *
     FROM chatroom_users
     WHERE chatroom_id = ${chatRoomId}
@@ -127,12 +127,12 @@ export async function saveTextMessage(
   //     messageType: "text",
   //   })
   //   .returning()
-  const savedMessage = await query(`
+  const savedMessage = await pg.query(`
     INSERT INTO chat_messages (chatroom_id, user_id, message, message_type)
     VALUES ('${chatRoomId}', '${userId}', '${message.text}', 'text')
     RETURNING *`)
   // const user = await db.select().from(users).where(eq(users.id, parseInt(userId)))
-  const user = await query(`
+  const user = await pg.query(`
     SELECT *
     FROM users
     WHERE id = ${userId}`)
