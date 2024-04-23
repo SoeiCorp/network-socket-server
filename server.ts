@@ -33,6 +33,11 @@ io.on("connection", async (socket) => {
     console.log("User connected:", socket.id);
     socket.on("login", async (userId) => {
         console.log("Logged-In User Id:", userId);
+        for (let OnlineUserId of Object.keys(onlineUsers)) {
+            if (OnlineUserId == userId) {
+                io.to(onlineUsers[userId]).emit('force disconnect')
+            }
+        }
         onlineUsers[Number(userId)] = socket.id;
         io.emit("users online", [...Object.keys(onlineUsers)]);
         socket.join("general");
@@ -44,6 +49,10 @@ io.on("connection", async (socket) => {
             // console.log(chatroom.id)
         }
     });
+
+    socket.on('force disconnect', async () => {
+        socket.disconnect();
+    })
 
     socket.on('update user', async (userId, name) => {
         io.to('general').emit(
