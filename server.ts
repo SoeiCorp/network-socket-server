@@ -32,7 +32,6 @@ const onlineUsers: onlineUsersType = {};
 io.on("connection", async (socket) => {
     console.log("User connected:", socket.id);
     socket.on("login", async (userId) => {
-        console.log("Logged-In User Id:", userId);
         for (let OnlineUserId of Object.keys(onlineUsers)) {
             if (OnlineUserId == userId) {
                 io.to(onlineUsers[userId]).emit('force disconnect')
@@ -41,12 +40,9 @@ io.on("connection", async (socket) => {
         onlineUsers[Number(userId)] = socket.id;
         io.emit("users online", [...Object.keys(onlineUsers)]);
         socket.join("general");
-        // console.log([...Object.keys(onlineUsers)])
         const allGroupChatroom = await findAllChatroom(userId);
         for (let chatroom of allGroupChatroom) {
-            console.log(`chatroom: ${chatroom.id}`)
             socket.join(`chatroom: ${chatroom.id}`);
-            // console.log(chatroom.id)
         }
     });
 
@@ -64,7 +60,6 @@ io.on("connection", async (socket) => {
     })
 
     socket.on("private message", async (recipientId, message) => {
-        // console.log(recipientId, message)
         const senderUserId = Object.keys(onlineUsers).find(
             (key) => onlineUsers[Number(key)] === socket.id
         );
@@ -94,7 +89,6 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("group message", async (chatroomId, message, recipientId) => {
-        console.log(chatroomId, message, recipientId)
         const senderUserId = Object.keys(onlineUsers).find(
             (key) => onlineUsers[Number(key)] === socket.id
         );
@@ -107,21 +101,16 @@ io.on("connection", async (socket) => {
             messageToClient = await saveTextMessage(chatroomId, senderUserId, {
                 text: message,
             });
-            console.log("messageToClient", messageToClient)
         }
-        const recipientSocketId = onlineUsers[recipientId];
-        console.log(`chatroom: ${chatroomId}`)
         io.to(`chatroom: ${chatroomId}`).emit(
             "group message",
             chatroomId,
             messageToClient,
             senderUserId
         );
-        // socket.emit('group message sent', chatroomId, message, recipientId)
     });
 
     socket.on("create group", async (chatroomId) => {
-        // console.log(socket.id, chatroomId);
         let chatroomToClient = chatroomId;
         if (typeof chatroomId === "number") {
             chatroomToClient = await findNewGroupChatroom(chatroomId.toString());
@@ -139,11 +128,9 @@ io.on("connection", async (socket) => {
             io.to(recipientSocketId).emit("create private", chatroomId);
         }
         socket.join(`chatroom: ${chatroomId}`);
-        // console.log(socket.id, chatroomId);
     });
 
     socket.on("join group", async (chatroomId, recipientId) => {
-        // console.log(chatroomId, recipientId);
         const joinUserId = Object.keys(onlineUsers).find(
             (key) => onlineUsers[Number(key)] === socket.id
         );
@@ -153,7 +140,6 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("leave group", async (chatroomId, recipientId) => {
-        // console.log(chatroomId, recipientId)
         const leaveUserId = Object.keys(onlineUsers).find(
             (key) => onlineUsers[Number(key)] === socket.id
         );
@@ -167,7 +153,6 @@ io.on("connection", async (socket) => {
     });
 
     socket.on("disconnect", () => {
-        // console.log("User disconnected:", socket.id);
         delete onlineUsers[
             Number(
                 Object.keys(onlineUsers).find(
